@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: orion-system
+namePrefix: orion-
+generatorOptions:
+  disableNameSuffixHash: true
+resources:
+- ns.yaml
+- apps/
+labels:
+- includeSelectors: true
+  pairs:
+    app: orion

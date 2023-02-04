@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: orion-daemon
+  namespace: kube-system
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: orion-daemon
+  template:
+    metadata:
+      labels:
+        k8s-app: orion-daemon
+    spec:
+      containers:
+      - image: __DAEMON_IMAGE__
+        imagePullPolicy: IfNotPresent
+        name: orion-daemon
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /host/etc/cni/net.d
+          name: cni-net-dir
+          readOnly: true
+      hostNetwork: true
+      initContainers:
+      - command:
+        - /install.sh
+        image: __CNI_IMAGE__
+        imagePullPolicy: IfNotPresent
+        name: install-cni
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /host/opt/cni/bin
+          name: cni-bin-dir
+        - mountPath: /host/etc/cni/net.d
+          name: cni-net-dir
+      nodeSelector:
+        kubernetes.io/os: linux
+      priorityClassName: system-node-critical
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      - key: CriticalAddonsOnly
+        operator: Exists
+      - effect: NoExecute
+        operator: Exists
+      volumes:
+      - hostPath:
+          path: /opt/cni/bin
+          type: ""
+        name: cni-bin-dir
+      - hostPath:
+          path: /etc/cni/net.d
+          type: ""
+        name: cni-net-dir
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
